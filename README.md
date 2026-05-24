@@ -29,6 +29,16 @@ Copy the entire `UniSchedule-AI` folder to:
 
 Do not rely only on Cursor chat history — files in this folder are your source of truth.
 
+## GitHub repository
+
+**Remote:** [https://github.com/bhagya-tharindu/UniSchedule-AI.](https://github.com/bhagya-tharindu/UniSchedule-AI.)
+
+```powershell
+git add -A
+git commit -m "Your message"
+git push
+```
+
 ## Status
 
 - Week 3: Research + system design documents (see `docs/supervisor-submission/`)

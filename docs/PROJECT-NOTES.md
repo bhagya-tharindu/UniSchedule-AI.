@@ -141,8 +141,8 @@ UniSchedule-AI/
 
 ### Files (recommended)
 
-1. Copy `UniSchedule-AI` to cloud storage or Git.  
-2. Run `git init` in `UniSchedule-AI` and push to GitHub (private repo is fine).  
+1. **GitHub:** [bhagya-tharindu/UniSchedule-AI.](https://github.com/bhagya-tharindu/UniSchedule-AI.) (note: repo name ends with a `.`)  
+2. Local folder is linked — use `git push` after commits.  
 3. Export PDFs from markdown before each supervisor meeting.
 
 ### Cursor chat
