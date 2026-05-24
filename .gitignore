@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Next.js
+.next/
+out/
+
+# Laravel
+/storage/*.key
+/bootstrap/cache/*.php
+/public/hot
+/public/storage
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs & temp
+*.log
+.phpunit.result.cache
