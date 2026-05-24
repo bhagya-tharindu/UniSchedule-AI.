@@ -1,0 +1,36 @@
+---
+description: FYP dissertation and supervisor document standards
+globs: docs/**/*.md
+alwaysApply: false
+---
+
+# FYP Documentation — UniSchedule AI
+
+## Key files
+
+| Path | Purpose |
+|------|---------|
+| `docs/PROJECT-NOTES.md` | Living plan — update Section 13 after supervisor meetings |
+| `docs/supervisor-submission/` | Week 3 pack (research, design, evaluation) |
+
+## Writing standards
+
+- **Harvard** referencing in literature and dissertation text
+- Tie features to **RQ1–RQ5** and evaluation metrics
+- Distinguish Must / Should / Won't (MoSCoW) when proposing features
+
+## Supervisor expectations
+
+- Research gap, methodology, primary data (survey/interviews), evaluation plan
+- Diagrams: architecture, ER, use cases, scheduling flow, AI decision flow
+- Security: Sanctum, RBAC, privacy — see `06-evaluation-security-ethics.md`
+
+## When editing submission docs
+
+- Replace placeholders: `[Your Full Name]`, `[Student ID]`, `[Date]`
+- Do not claim completed work (survey live, code working) unless true
+- Export to PDF via Word for professional formatting (no broken markdown `---` in PDF)
+
+## Tech stack in docs
+
+Next.js, Laravel, MySQL, Laravel Sanctum — keep consistent across all documents.

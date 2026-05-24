@@ -8,6 +8,7 @@
 |----------|----------|
 | **Supervisor submission pack (Week 3)** | [docs/supervisor-submission/](docs/supervisor-submission/) |
 | **Project notes (planning, stack, timeline)** | [docs/PROJECT-NOTES.md](docs/PROJECT-NOTES.md) |
+| **Cursor AI rules (auto context)** | [.cursor/rules/](.cursor/rules/) + [AGENTS.md](AGENTS.md) |
 | **Email to supervisor** | [docs/supervisor-submission/EMAIL-template.md](docs/supervisor-submission/EMAIL-template.md) |
 
 ## Technology stack

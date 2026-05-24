@@ -149,7 +149,9 @@ UniSchedule-AI/
 
 - Chats are tied to the workspace; reopening this folder may show history.  
 - **Do not rely on chat alone** — all deliverables are in `docs/`.  
-- Optional: copy important chat answers into this file under Section 10.
+- **Cursor rules:** `.cursor/rules/` — `unischedule-core.mdc` applies to every new chat automatically.  
+- **AGENTS.md** at repo root gives agents a quick orientation.  
+- Optional: copy important chat answers into this file under Section 13.
 
 ### Full project plan (Cursor)
 

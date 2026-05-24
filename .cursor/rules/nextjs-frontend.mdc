@@ -1,0 +1,43 @@
+---
+description: Next.js frontend conventions for UniSchedule AI
+globs: frontend/**/*.{ts,tsx},**/*.tsx
+alwaysApply: false
+---
+
+# Next.js Frontend — UniSchedule AI
+
+## Stack
+
+- Next.js (App Router preferred), TypeScript, fetch/axios to Laravel API
+
+## API client
+
+- Base URL from `NEXT_PUBLIC_API_URL`
+- Attach Sanctum token on every request:
+
+```typescript
+headers: {
+  Authorization: `Bearer ${token}`,
+  Accept: 'application/json',
+}
+```
+
+- Handle 401 → redirect to login; 422 → show validation errors
+
+## Pages (minimum)
+
+- Login / register (student vs lecturer)
+- Dashboard — list meetings
+- Book meeting — form + optional natural language input
+- Clash feedback UI — show alternatives when API returns conflicts
+
+## Do not
+
+- Put scheduling business rules only in the frontend — clash/constraint logic lives in **Laravel**
+- Store Sanctum token in localStorage if avoiding XSS — prefer httpOnly cookie pattern when using Sanctum SPA setup
+- Call LLM APIs directly from browser for booking (keys exposed) — route through Laravel
+
+## UI
+
+- Accessible forms, clear clash/error messages
+- Loading and error states on all API calls

@@ -1,0 +1,51 @@
+---
+description: UniSchedule AI FYP — project context, stack, and scope (always read first)
+alwaysApply: true
+---
+
+# UniSchedule AI — Core Project Context
+
+**Project:** Intelligent University Meeting Scheduler (Final Year Project, University of Canterbury).
+
+**Read for full context:** `docs/PROJECT-NOTES.md` and `docs/supervisor-submission/05-system-design-pack.md`.
+
+## Tech stack (do not change without user approval)
+
+| Layer | Stack |
+|-------|--------|
+| Frontend | Next.js + TypeScript |
+| Backend | Laravel REST API |
+| Database | MySQL + Eloquent |
+| Auth | **Laravel Sanctum** (not custom JWT) — `auth:sanctum` on protected routes |
+
+**Architecture:** Next.js → HTTPS → Laravel API → MySQL. NLP/LLM called from Laravel; scheduling decisions validated deterministically (hybrid AI).
+
+## Research priorities (supervisor requirement)
+
+- Measurable RQs, literature gap, methodology, evaluation — not code-only work
+- Evaluation: manual vs AI-assisted scheduling, clash metrics, UAT
+- References: **Harvard** format in dissertation docs
+
+## MoSCoW — Must have
+
+Auth (Sanctum) + roles; meeting CRUD; clash detection; academic constraints; NLP/hybrid input; room allocation; survey + evaluation.
+
+## Won't have (defer to Future Work)
+
+Voice assistant, mobile app, LMS integration, ML preference learning, multi-campus enterprise deploy.
+
+## Repo layout (target)
+
+```
+frontend/     # Next.js
+backend/      # Laravel
+docs/         # FYP documents (supervisor pack, PROJECT-NOTES.md)
+```
+
+## New chat behaviour
+
+1. Check `docs/PROJECT-NOTES.md` before large design changes.
+2. Keep diffs minimal; match existing conventions when code exists.
+3. Do not invent survey results or implementation progress — be honest in docs.
+
+**GitHub:** `https://github.com/bhagya-tharindu/UniSchedule-AI.` (repo name ends with `.`)

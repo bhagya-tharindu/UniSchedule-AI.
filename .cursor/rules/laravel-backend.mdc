@@ -1,0 +1,55 @@
+---
+description: Laravel API conventions for UniSchedule AI
+globs: backend/**/*.php,app/**/*.php,routes/**/*.php,database/**/*.php
+alwaysApply: false
+---
+
+# Laravel Backend — UniSchedule AI
+
+## Stack
+
+- Laravel REST API, MySQL, Eloquent, **Sanctum** for API auth from Next.js
+
+## API design
+
+- Prefix: `/api/` (e.g. `/api/meetings`, `/api/meetings/parse-nlp`)
+- Protect routes: `middleware(['auth:sanctum'])`
+- Return JSON; use API Resources for consistent shapes
+- Validate with Form Requests
+
+## Auth (Sanctum)
+
+```php
+// routes/api.php
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('meetings', MeetingController::class);
+});
+```
+
+- Issue tokens on login; Next.js sends `Authorization: Bearer {token}`
+- Roles: `student`, `lecturer` (column on `users` + policies/gates)
+
+## Domain services (keep controllers thin)
+
+- `SchedulingService` — propose slots, apply constraints
+- `ClashDetectionService` — time, room, participant overlaps
+- `ResourceAllocationService` — room capacity, availability
+- `NlpSchedulingService` — parse text → structured DTO → pass to scheduler
+
+**Rule:** NLP/LLM suggests; Laravel **always** validates constraints before persist.
+
+## Scheduling logic
+
+- Check: lecturer/student availability, room capacity, exam blackouts, existing meetings
+- Log clashes in `clash_records` when rejecting or warning
+
+## Tests
+
+- PHPUnit: unit tests for clash detector and constraint checker
+- Feature tests for authenticated booking flow
+
+## Do not
+
+- Replace Sanctum with raw JWT unless user explicitly requests
+- Skip validation on NLP-parsed input
+- Use PostgreSQL — project uses **MySQL**
