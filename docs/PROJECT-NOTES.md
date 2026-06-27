@@ -2,7 +2,7 @@
 
 **Purpose:** Single reference for your FYP — saved from planning work so you do not depend on Cursor chat history.
 
-**Last updated:** May 2026 (Week 3)
+**Last updated:** June 2026 (Week 5 — NLP pipeline v1)
 
 ---
 
@@ -94,15 +94,106 @@ Form-based booking + strong clash detection + simplified NLP + survey evaluation
 
 ---
 
-## 6. Timeline (Weeks 4–6)
+## 6. 12-week plan (Weeks 4–12)
 
-| Week | Development | Research |
-|------|-------------|----------|
-| **4** | MySQL migrations; Laravel scheduler + clash; Sanctum login | Ethics; survey launch; interviews scheduled |
-| **5** | NLP v1 via Laravel | Literature; survey analysis |
-| **6** | End-to-end: Next.js → Laravel → MySQL | Requirements ↔ survey themes; demo |
+**Source:** Merged from your Cursor plan (`personalized_fyp_plan_f697e383.plan.md`) + `docs/supervisor-submission/06-evaluation-security-ethics.md`.
 
-**Hours:** Target 15–20 h/week.
+**Pace:** 15–20 h/week (~40% research/writing, ~60% build; shift to ~70% writing in Weeks 10–12).
+
+**Weekly habit:** 3 dev tasks + 1 research task + 1 dissertation subsection; brief supervisor email every Friday with evidence only (no invented progress).
+
+### 6.1 Week 4 — complete
+
+| Area | Target | Status (update as you go) |
+|------|--------|---------------------------|
+| **Dev** | Migrations; Sanctum auth; scheduler + clash; meeting CRUD; Next.js shell | **Done** — see `SETUP.md` §3 |
+| **Dev** | Unit tests for clash detector | Done (`ClashDetectionTest`) — extend scenarios in Week 7 |
+| **Research** | Ethics application / confirmation | Pack ready — `docs/research/`; launch after supervisor sign-off |
+| **Research** | Survey live; interviews scheduled (3–5) | Instruments ready — publish after ethics |
+| **Writing** | Literature Ch. 2 draft; gap section | ~60% — see `03-literature-review.md` §10 |
+| **Deliverable** | Supervisor demo: login, book meeting, clash check | Done |
+
+### 6.1b Week 5 — current (June 2026)
+
+| Area | Target | Status |
+|------|--------|--------|
+| **Dev** | NLP pipeline v1 (`NlpSchedulingService`, `POST /meetings/parse-nlp`) | **Done** |
+| **Dev** | NL input + confirm step on booking UI | **Done** |
+| **Dev** | NLP feature tests (`NlpParseMeetingTest`) | **Done** |
+| **Research** | Ethics checklist + survey + interview guide | **Done** (awaiting launch) |
+| **Research** | Preliminary survey analysis | Pending responses |
+| **Writing** | Literature ~60%; Methodology Ch. 3 draft | **In progress** |
+| **Deliverable** | Demo: utterance → proposed slot → clash → book | See `docs/week5-supervisor-demo.md` |
+
+### 6.2 Full schedule (Weeks 4–12)
+
+| Week | Development | Research / dissertation | Deliverables / proof |
+|------|-------------|-------------------------|----------------------|
+| **4** | Scheduler + clash v1; Sanctum; DB migrations; Next.js auth + meetings UI | Ethics; survey launch; schedule 3–5 interviews; literature Ch. 2 draft | Demo: roles, CRUD, clash; CSP/clash documented; unit tests |
+| **5** | **NLP pipeline v1** — parse text → structured request → scheduler (Laravel); validate before persist | Survey analysis (preliminary themes); literature ~60% | NLP flow diagram; demo: utterance → proposed slot |
+| **6** | **End-to-end vertical slice** — NLP + scheduler + MySQL + UI; polish booking flow | Requirements ↔ survey/interview themes (RTM traceability) | Supervisor vertical-slice demo |
+| **7** | Resource allocation polish; **alternative slot** UX; expand clash test suite (≥20 scenarios) | Literature review ~80%; **AI design chapter** draft | Evaluation test cases defined; scheduler/clash integration tests |
+| **8** | **Should-have:** analytics dashboard v1 (utilization, peaks) **or** calendar sync spike — pick one if time tight | Analytics queries + charts for dissertation; security section draft | Dashboard screenshots **or** calendar spike notes |
+| **9** | UI/UX refinement; error handling; freeze scope on new features | System testing chapter; **pilot UAT** (5–8 participants) | Test report; UAT script + screenshots |
+| **10** | Bug fixes; performance tuning (API p95) | **Comparative evaluation** — manual vs AI-assisted (same scenarios) | Results tables/charts; dissertation Ch. 6–7 draft |
+| **11** | **Feature freeze**; deployment/README; tag release `v1.0-submission` | Full dissertation integration; supervisor draft review | Complete draft to supervisor |
+| **12** | Final fixes only | Proofread; Harvard reference audit; submission pack | Final report + code tag |
+
+### 6.3 Evaluation milestones (by week)
+
+| Week | Evaluation activity |
+|------|---------------------|
+| 4 | Finalize ≥20 test scenarios; ethics for survey |
+| 7 | Unit + integration tests for scheduler and clash |
+| 9 | Pilot UAT |
+| 10 | Comparative study (manual vs AI); performance tests |
+| 11 | Results chapter with charts |
+
+### 6.4 Dissertation writing map
+
+| Weeks | Chapters / artifacts |
+|-------|----------------------|
+| 4–5 | Ch. 2 Literature (gap, matrix); Ch. 3 Methodology draft |
+| 6–7 | Ch. 4 System Design (architecture, ER, use cases, AI flow) |
+| 8–9 | Ch. 5 Implementation; security/privacy section |
+| 10–11 | Ch. 6 Evaluation (metrics, manual vs AI, UAT, limitations) |
+| 11–12 | Ch. 7 Conclusion; Future Work; reference audit |
+
+**Required diagrams:** system context, components, ER, use cases, scheduling sequence, AI decision flow, evaluation charts, UI screenshots.
+
+### 6.5 MoSCoW vs weeks (what lands when)
+
+| Priority | Feature | Target week |
+|----------|---------|-------------|
+| Must | Auth + roles (Sanctum) | 4 ✓ |
+| Must | Meeting CRUD + clash + constraints | 4 ✓ |
+| Must | NLP / hybrid booking | 5–6 |
+| Must | Room allocation | 4–7 (basic in place; polish Week 7) |
+| Must | Survey + manual vs AI evaluation | 4 (launch) → 10 (study) |
+| Should | Alternative slot suggestions | 4 ✓ / UX Week 7 |
+| Should | Analytics dashboard | 8 |
+| Should | Calendar sync (Google/Outlook) | 8 or **defer** to Future Work |
+| Won’t | Voice, mobile, LMS, ML preferences | Dissertation Future Work only |
+
+### 6.6 If behind — minimum acceptable submission
+
+Still required by submission:
+
+- Form-based booking + **robust clash detection** + documented constraints  
+- **Simplified NLP** (or documented hybrid with LLM)  
+- **Survey + evaluation** with real numbers (manual vs system)  
+- Research chapters: gap, method, evaluation — not only a user manual  
+
+**Cut first:** calendar sync, full analytics, Could-have notifications.
+
+### 6.7 Supervisor meeting agenda (standing)
+
+1. Progress vs week table (§6.2)  
+2. Literature: 2–3 new papers  
+3. Primary data: survey **n**, interview themes  
+4. Demo (5 min) or screen recording  
+5. Evaluation: preliminary metrics  
+6. Scope: explicit Yes/No on new features  
 
 ---
 
@@ -120,19 +211,15 @@ Form-based booking + strong clash detection + simplified NLP + survey evaluation
 
 ```
 UniSchedule-AI/
-├── README.md                 ← start here
+├── README.md
+├── SETUP.md                  ← how to run locally
+├── frontend/                 ← Next.js + TypeScript
+├── backend/                  ← Laravel API + Sanctum
 ├── docs/
-│   ├── PROJECT-NOTES.md      ← this file
+│   ├── PROJECT-NOTES.md      ← this file (living plan)
 │   └── supervisor-submission/
-│       ├── 01-progress-summary.md
-│       ├── 02-research-foundation.md
-│       ├── 03-literature-review.md
-│       ├── 04-requirements-moscow.md
-│       ├── 05-system-design-pack.md
-│       ├── 06-evaluation-security-ethics.md
-│       ├── EMAIL-template.md
-│       └── README.md
-└── (future: frontend/, backend/ for code)
+│       ├── 01-progress-summary.md … 06-evaluation-security-ethics.md
+│       └── EMAIL-template.md
 ```
 
 ---
@@ -155,7 +242,12 @@ UniSchedule-AI/
 
 ### Full project plan (Cursor)
 
-Plan file (if present): `personalized_fyp_plan_f697e383.plan.md` in your `.cursor/plans/` folder.
+Canonical 12-week detail also lives in:
+
+- `C:\Users\bhagy\.cursor\plans\personalized_fyp_plan_f697e383.plan.md`  
+- `C:\Users\bhagy\.cursor\plans\unischedule_ai_research_plan_931d5f10.plan.md`  
+
+**This file (§6)** is the repo copy agents and you should use in new chats.
 
 ---
 

@@ -5,7 +5,7 @@
 **Programme:** [Programme]  
 **Supervisor:** [Supervisor Name]  
 **Date:** [Date]  
-**Document version:** 1.0 (Week 3 submission — draft chapter)
+**Document version:** 1.1 (Week 5 — ~60% complete)
 
 ---
 
@@ -147,6 +147,46 @@ The next phase of research will expand this review with additional sources from 
 
 ---
 
+## 10. Week 5 expansion — hybrid AI and evaluation literature
+
+### 10.1 Design science and artefact evaluation
+
+Design science research (DSR) positions the development of IT artefacts alongside rigorous evaluation (Hevner et al., 2004). For UniSchedule AI, the artefact is the scheduling platform; evaluation combines **technical metrics** (clash detection, scheduling accuracy) and **behavioural metrics** (task time, satisfaction). This dual lens addresses supervisor feedback that implementation alone is insufficient for dissertation standard.
+
+DSR also supports incremental rigour: Week 5 delivers NLP parsing integrated with an existing constraint engine rather than a monolithic “black box” scheduler—mirroring Wijerathne et al.’s (2025) modular agent pattern but scoped to university roles and Laravel validation.
+
+### 10.2 NLP reliability and confirmation UX
+
+Patra et al. (2021) demonstrate that scheduling-specific temporal extraction outperforms generic parsers—a justification for domain-focused prompts and post-parse validation rather than end-to-end LLM booking. Song et al. (2025) show LLMs can reduce cognitive load in group scheduling UIs; UniSchedule AI applies a related principle through **adaptive feedback** (clash messages and alternative slots) while requiring explicit user confirmation of parsed fields.
+
+This confirmation step mitigates known LLM risks (hallucinated times, wrong participants) and aligns with human-in-the-loop scheduling research emphasising trust and transparency.
+
+### 10.3 Empirical comparison literature
+
+McKay et al. (2017) quantify coordination overhead before meetings occur—supporting RQ4’s manual vs system comparison. Few NLP calendar papers report **controlled comparative studies** in educational settings; UniSchedule AI’s planned Week 10 experiment therefore addresses an under-reported evaluation gap identified in Section 8.
+
+### 10.4 Additional sources (Week 5 reading list)
+
+| Author(s) & year | Focus | Relevance |
+|------------------|-------|-----------|
+| Hevner et al. (2004) | Design science in IS | Methodology Ch. 3 framing |
+| Vlachogiannis et al. (2024) | LLM calendar assistants survey | NLP risks and architectures |
+| Amershi et al. (2019) | Guidelines for human-AI interaction | Confirm-before-commit UX |
+
+*Note:* Vlachogiannis et al. and Amershi et al. to be verified and added to References before final submission.
+
+### 10.5 Literature completion status (~60%)
+
+| Section | Status |
+|---------|--------|
+| Themes 1–5 (timetabling, CSP, meetings, NLP, resources) | Draft complete |
+| Literature matrix | Complete |
+| Gap and contribution | Complete |
+| Week 5 hybrid AI / evaluation expansion | Added |
+| Remaining | 2–3 IEEE/ACM sources; Harvard audit; survey theme integration (Week 6) |
+
+---
+
 ## References (Harvard)
 
 Burke, E., Elliman, D., Ford, P. and Weare, R. (1996) 'Examination timetabling in British Universities: a survey', in Burke, E. and Ross, P. (eds) *Practice and Theory of Automated Timetabling*. Berlin: Springer, pp. 113–127.
@@ -176,6 +216,10 @@ Schaerf, A. (1999) 'A survey of automated timetabling', *Artificial Intelligence
 Song, J., Ashktorab, Z. and Malone, T.W. (2025) 'Togedule: scheduling meetings with large language models and adaptive representations of group availability', *Proceedings of the ACM on Human-Computer Interaction*, 9(7), article CSCW332. doi: 10.1145/3757513.
 
 Wijerathne, O., Nimasha, A., Fernando, D., de Silva, N. and Perera, S. (2025) 'ScheduleMe: multi-agent calendar assistant', *arXiv preprint* arXiv:2509.25693. Available at: https://arxiv.org/abs/2509.25693 (Accessed: [Date]).
+
+Hevner, A.R., March, S.T., Park, J. and Ram, S. (2004) 'Design science in information systems research', *MIS Quarterly*, 28(1), pp. 75–105.
+
+Amershi, S., Weld, D., Vorvoreanu, M. and others (2019) 'Guidelines for human-AI interaction', in *Proceedings of the 2019 CHI Conference on Human Factors in Computing Systems*, New York: ACM, pp. 1–13. doi: 10.1145/3290605.3300233.
 
 ---
 

@@ -1,6 +1,6 @@
-# UniSchedule AI — Supervisor Submission Pack (Week 3)
+# UniSchedule AI — Supervisor Submission Pack
 
-Research and system design documents for supervisor review. **No survey included** — primary data collection planned for Week 4.
+Research and system design documents for supervisor review.
 
 ## Documents
 
@@ -8,11 +8,19 @@ Research and system design documents for supervisor review. **No survey included
 |------|--------|----------------|
 | [01-progress-summary.md](01-progress-summary.md) | Progress Summary & Next Steps | `01-progress-summary.pdf` |
 | [02-research-foundation.md](02-research-foundation.md) | Research Foundation | `02-research-foundation.pdf` |
-| [03-literature-review.md](03-literature-review.md) | Literature Review Progress | `03-literature-review.pdf` |
+| [03-literature-review.md](03-literature-review.md) | Literature Review (~60%, Week 5) | `03-literature-review.pdf` |
+| [03-methodology-draft.md](03-methodology-draft.md) | Methodology Chapter 3 (Week 5 draft) | `03-methodology-draft.pdf` |
 | [04-requirements-moscow.md](04-requirements-moscow.md) | Requirements & MoSCoW | `04-requirements-moscow.pdf` |
 | [05-system-design-pack.md](05-system-design-pack.md) | System Design Pack (diagrams) | `05-system-design-pack.pdf` |
 | [06-evaluation-security-ethics.md](06-evaluation-security-ethics.md) | Evaluation, Security & Ethics | `06-evaluation-security-ethics.pdf` |
 | [EMAIL-template.md](EMAIL-template.md) | Email to supervisor | — |
+
+## Week 5 additions (repo)
+
+| Path | Purpose |
+|------|---------|
+| [../research/](../research/) | Ethics checklist, survey, interview guide |
+| [../week5-supervisor-demo.md](../week5-supervisor-demo.md) | NLP demo script |
 
 ## Before you send
 
@@ -35,8 +43,7 @@ Merge all six PDFs in order 01–06 for one attachment.
 | Database | MySQL |
 | Authentication | Laravel Sanctum |
 
-## Week 4 (after feedback)
+## Week 5 status
 
-- Ethics application
-- Survey + interviews
-- Git repository and implementation per approved design
+- NLP pipeline v1 implemented — see [../week5-supervisor-demo.md](../week5-supervisor-demo.md)
+- Primary research instruments in [../research/](../research/) — launch after ethics sign-off
