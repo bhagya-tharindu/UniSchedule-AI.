@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\MeetingController;
 use Illuminate\Support\Facades\Route;
 
@@ -11,6 +12,9 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me', [AuthController::class, 'me']);
+
+        Route::get('/users', [CatalogController::class, 'users']);
+        Route::get('/rooms', [CatalogController::class, 'rooms']);
 
         Route::get('/meetings', [MeetingController::class, 'index']);
         Route::post('/meetings', [MeetingController::class, 'store']);

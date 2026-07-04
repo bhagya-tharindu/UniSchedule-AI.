@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -8,9 +8,16 @@ import {
   CheckCircle2,
   Sparkles,
   TriangleAlert,
+  Users,
   Zap,
 } from "lucide-react";
-import { api, type ParsedMeetingProposal } from "@/lib/api";
+import {
+  api,
+  type ParsedMeetingProposal,
+  type Room,
+  type SlotSuggestion,
+  type User,
+} from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,11 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-const ROOMS = [
-  { id: "1", label: "ENG-101 · Engineering" },
-  { id: "2", label: "SCI-202 · Science" },
-];
+import { cn } from "@/lib/utils";
 
 function defaultMeetingSlot(): { start: string; end: string } {
   const d = new Date();
@@ -50,10 +53,21 @@ function toDatetimeLocal(iso: string | null): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function formatSlot(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 const defaultSlot = defaultMeetingSlot();
 
 export default function NewMeetingPage() {
   const router = useRouter();
+  const [mode, setMode] = useState<"form" | "nlp">("form");
   const [nlpText, setNlpText] = useState(
     "Book a supervision with Dr Jane Lecturer next Tuesday at 2pm in ENG-101",
   );
@@ -64,11 +78,51 @@ export default function NewMeetingPage() {
   const [endTime, setEndTime] = useState(defaultSlot.end);
   const [roomId, setRoomId] = useState<string>("");
   const [participantIds, setParticipantIds] = useState<number[]>([]);
-  const [clashPreview, setClashPreview] = useState<string | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [clashMessages, setClashMessages] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<SlotSuggestion[]>([]);
   const [clashClean, setClashClean] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [parsing, setParsing] = useState(false);
+  const [checking, setChecking] = useState(false);
+
+  useEffect(() => {
+    Promise.all([api.listUsers(), api.listRooms()])
+      .then(([usersRes, roomsRes]) => {
+        setUsers(usersRes.data);
+        setRooms(roomsRes.data);
+      })
+      .catch((err) =>
+        setCatalogError(
+          err instanceof Error ? err.message : "Could not load users or rooms",
+        ),
+      );
+  }, []);
+
+  function clearClashState() {
+    setClashMessages([]);
+    setSuggestions([]);
+    setClashClean(false);
+  }
+
+  function applyClashResult(result: {
+    has_clashes: boolean;
+    clashes: Array<{ type: string; message: string }>;
+    suggestions: SlotSuggestion[];
+  }) {
+    if (result.has_clashes) {
+      setClashMessages(result.clashes.map((c) => c.message));
+      setSuggestions(result.suggestions);
+      setClashClean(false);
+    } else {
+      setClashMessages(["No clashes detected for this slot."]);
+      setSuggestions([]);
+      setClashClean(true);
+    }
+  }
 
   function applyParsedProposal(proposal: ParsedMeetingProposal) {
     setParsed(proposal);
@@ -80,29 +134,42 @@ export default function NewMeetingPage() {
     setParticipantIds(proposal.participant_ids);
 
     if (proposal.has_clashes) {
-      const msgs = proposal.clashes.map((c) => c.message).join("; ");
-      const sug =
-        proposal.suggestions.length > 0
-          ? ` Suggestions: ${proposal.suggestions.map((s) => new Date(s.start_time).toLocaleString()).join(", ")}`
-          : "";
-      setClashPreview(`${msgs}${sug}`);
+      setClashMessages(proposal.clashes.map((c) => c.message));
+      setSuggestions(proposal.suggestions);
       setClashClean(false);
     } else if (proposal.start_time) {
-      setClashPreview("Parsed slot has no clashes detected.");
+      setClashMessages(["Parsed slot has no clashes detected."]);
+      setSuggestions([]);
       setClashClean(true);
     } else {
-      setClashPreview(null);
-      setClashClean(false);
+      clearClashState();
     }
+  }
+
+  function toggleParticipant(id: number) {
+    setParticipantIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+    clearClashState();
+  }
+
+  function applySuggestion(slot: SlotSuggestion) {
+    setStartTime(toDatetimeLocal(slot.start_time));
+    setEndTime(toDatetimeLocal(slot.end_time));
+    setClashMessages(["Alternative slot applied — check clashes again if you change other fields."]);
+    setSuggestions([]);
+    setClashClean(true);
+    toast.success("Alternative slot applied");
   }
 
   async function handleParseNlp() {
     setParsing(true);
     setError(null);
-    setClashPreview(null);
+    clearClashState();
     try {
       const res = await api.parseNlp({ text: nlpText });
       applyParsedProposal(res.data);
+      setMode("form");
       toast.success("Request parsed", {
         description: "Review the details below, then confirm.",
       });
@@ -115,24 +182,21 @@ export default function NewMeetingPage() {
   }
 
   async function checkClashes() {
-    setClashPreview(null);
-    const res = await api.checkClash({
-      start_time: startTime,
-      end_time: endTime,
-      room_id: roomId ? Number(roomId) : null,
-      participant_ids: participantIds.length > 0 ? participantIds : undefined,
-    });
-    if (res.has_clashes) {
-      const msgs = res.clashes.map((c) => c.message).join("; ");
-      const sug =
-        res.suggestions.length > 0
-          ? ` Suggestions: ${res.suggestions.map((s) => new Date(s.start_time).toLocaleString()).join(", ")}`
-          : "";
-      setClashPreview(`${msgs}${sug}`);
-      setClashClean(false);
-    } else {
-      setClashPreview("No clashes detected for this slot.");
-      setClashClean(true);
+    setChecking(true);
+    setError(null);
+    clearClashState();
+    try {
+      const res = await api.checkClash({
+        start_time: startTime,
+        end_time: endTime,
+        room_id: roomId ? Number(roomId) : null,
+        participant_ids: participantIds.length > 0 ? participantIds : undefined,
+      });
+      applyClashResult(res);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not check clashes");
+    } finally {
+      setChecking(false);
     }
   }
 
@@ -158,6 +222,10 @@ export default function NewMeetingPage() {
     }
   }
 
+  const selectedParticipants = users.filter((u) =>
+    participantIds.includes(u.id),
+  );
+
   return (
     <div className="rise-in mx-auto max-w-2xl space-y-6">
       <div>
@@ -166,11 +234,15 @@ export default function NewMeetingPage() {
         </h1>
         <p className="text-muted-foreground mt-1 text-sm">
           Fill in the details, or describe it in plain English and let the
-          assistant draft it.
+          assistant draft it. Every booking is validated for clashes before
+          save.
         </p>
       </div>
 
-      <Tabs defaultValue="form">
+      <Tabs
+        value={mode}
+        onValueChange={(v) => setMode(v as "form" | "nlp")}
+      >
         <TabsList className="w-full">
           <TabsTrigger value="form" className="flex-1">
             <CalendarDays />
@@ -240,7 +312,8 @@ export default function NewMeetingPage() {
                     </ul>
                   )}
                   <p className="text-muted-foreground text-sm">
-                    Review and edit the fields below, then confirm booking.
+                    Fields below are filled for review. Edit anything, then
+                    create the meeting.
                   </p>
                 </div>
               )}
@@ -251,7 +324,8 @@ export default function NewMeetingPage() {
         <TabsContent value="form" className="mt-4">
           <Card>
             <CardContent className="text-muted-foreground text-sm">
-              Enter meeting details directly in the form below.
+              Enter meeting details directly. Use Natural language if you prefer
+              to describe the request in plain English first.
             </CardContent>
           </Card>
         </TabsContent>
@@ -260,10 +334,10 @@ export default function NewMeetingPage() {
       <Card>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
-            {error && (
+            {(error || catalogError) && (
               <Alert variant="destructive">
                 <TriangleAlert className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription>{error ?? catalogError}</AlertDescription>
               </Alert>
             )}
 
@@ -273,7 +347,10 @@ export default function NewMeetingPage() {
                 id="title"
                 required
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  clearClashState();
+                }}
                 placeholder="Project supervision"
               />
             </div>
@@ -297,7 +374,10 @@ export default function NewMeetingPage() {
                   type="datetime-local"
                   required
                   value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
+                  onChange={(e) => {
+                    setStartTime(e.target.value);
+                    clearClashState();
+                  }}
                 />
               </div>
               <div className="space-y-2">
@@ -307,7 +387,10 @@ export default function NewMeetingPage() {
                   type="datetime-local"
                   required
                   value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
+                  onChange={(e) => {
+                    setEndTime(e.target.value);
+                    clearClashState();
+                  }}
                 />
               </div>
             </div>
@@ -316,66 +399,135 @@ export default function NewMeetingPage() {
               <Label>Room (optional)</Label>
               <Select
                 value={roomId || undefined}
-                onValueChange={(v) => setRoomId(v)}
+                onValueChange={(v) => {
+                  setRoomId(v === "none" ? "" : v);
+                  clearClashState();
+                }}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select a room" />
                 </SelectTrigger>
                 <SelectContent>
-                  {ROOMS.map((r) => (
-                    <SelectItem key={r.id} value={r.id}>
-                      {r.label}
+                  <SelectItem value="none">No room</SelectItem>
+                  {rooms.map((r) => (
+                    <SelectItem key={r.id} value={String(r.id)}>
+                      {r.name}
+                      {r.building ? ` · ${r.building}` : ""} (cap. {r.capacity})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <p className="text-muted-foreground bg-muted/50 rounded-lg px-3 py-2 text-xs">
-              Demo availability: weekdays 08:00–20:00. Rooms: ENG-101 or SCI-202.
-            </p>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5">
+                <Users className="h-4 w-4" />
+                Participants (optional)
+              </Label>
+              {users.length === 0 ? (
+                <p className="text-muted-foreground text-sm">
+                  Loading users…
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {users.map((u) => {
+                    const selected = participantIds.includes(u.id);
+                    return (
+                      <button
+                        key={u.id}
+                        type="button"
+                        onClick={() => toggleParticipant(u.id)}
+                        className={cn(
+                          "rounded-full border px-3 py-1 text-xs font-medium transition",
+                          selected
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:bg-muted",
+                        )}
+                      >
+                        {u.name}
+                        <span className="ml-1 opacity-70">({u.role})</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {selectedParticipants.length > 0 && (
+                <p className="text-muted-foreground text-xs">
+                  Selected:{" "}
+                  {selectedParticipants.map((u) => u.name).join(", ")}
+                </p>
+              )}
+            </div>
 
-            {participantIds.length > 0 && (
-              <p className="text-muted-foreground text-sm">
-                Participants from AI: IDs {participantIds.join(", ")}
-              </p>
-            )}
+            <p className="text-muted-foreground bg-muted/50 rounded-lg px-3 py-2 text-xs">
+              Demo availability: weekdays 08:00–20:00 for seeded users. Clash
+              detection runs in Laravel before any booking is saved.
+            </p>
 
             <div className="flex flex-wrap gap-3 pt-1">
               <Button
                 type="button"
                 variant="outline"
                 onClick={checkClashes}
-                disabled={!startTime || !endTime}
+                disabled={!startTime || !endTime || checking}
               >
                 <Zap />
-                Check clashes
+                {checking ? "Checking…" : "Check clashes"}
               </Button>
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading || !title.trim()}>
                 {loading ? "Saving…" : "Create meeting"}
               </Button>
             </div>
 
-            {clashPreview && (
-              <Alert
-                variant={clashClean ? "default" : "destructive"}
-                className={
-                  clashClean
-                    ? "border-emerald-500/30 text-emerald-700 dark:text-emerald-400 [&>svg]:text-emerald-600"
-                    : ""
-                }
-              >
-                {clashClean ? (
-                  <CheckCircle2 className="h-4 w-4" />
-                ) : (
-                  <TriangleAlert className="h-4 w-4" />
-                )}
-                <AlertDescription
-                  className={clashClean ? "text-emerald-700 dark:text-emerald-400" : ""}
+            {clashMessages.length > 0 && (
+              <div className="space-y-3">
+                <Alert
+                  variant={clashClean ? "default" : "destructive"}
+                  className={
+                    clashClean
+                      ? "border-emerald-500/30 text-emerald-700 dark:text-emerald-400 [&>svg]:text-emerald-600"
+                      : ""
+                  }
                 >
-                  {clashPreview}
-                </AlertDescription>
-              </Alert>
+                  {clashClean ? (
+                    <CheckCircle2 className="h-4 w-4" />
+                  ) : (
+                    <TriangleAlert className="h-4 w-4" />
+                  )}
+                  <AlertDescription
+                    className={
+                      clashClean
+                        ? "text-emerald-700 dark:text-emerald-400"
+                        : ""
+                    }
+                  >
+                    <ul className="list-inside list-disc space-y-1">
+                      {clashMessages.map((msg) => (
+                        <li key={msg}>{msg}</li>
+                      ))}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+
+                {suggestions.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Alternative slots</p>
+                    <div className="flex flex-wrap gap-2">
+                      {suggestions.map((s) => (
+                        <Button
+                          key={`${s.start_time}-${s.end_time}`}
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => applySuggestion(s)}
+                        >
+                          {formatSlot(s.start_time)}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </form>
         </CardContent>

@@ -39,6 +39,18 @@ export type Meeting = {
   participants?: Array<{ user: User; response: string }>;
 };
 
+export type Room = {
+  id: number;
+  name: string;
+  building?: string | null;
+  capacity: number;
+};
+
+export type SlotSuggestion = {
+  start_time: string;
+  end_time: string;
+};
+
 type ClashError = { type?: string; message?: string };
 
 type ApiError = {
@@ -149,6 +161,14 @@ export const api = {
     return request<{ data: Meeting[] }>("/meetings");
   },
 
+  listUsers() {
+    return request<{ data: User[] }>("/users");
+  },
+
+  listRooms() {
+    return request<{ data: Room[] }>("/rooms");
+  },
+
   createMeeting(body: Record<string, unknown>) {
     return request<{ data: Meeting }>("/meetings", {
       method: "POST",
@@ -160,7 +180,7 @@ export const api = {
     return request<{
       has_clashes: boolean;
       clashes: Array<{ type: string; message: string }>;
-      suggestions: Array<{ start_time: string; end_time: string }>;
+      suggestions: SlotSuggestion[];
     }>("/meetings/check-clash", {
       method: "POST",
       body: JSON.stringify(body),

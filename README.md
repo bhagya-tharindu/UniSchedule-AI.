@@ -57,4 +57,5 @@ git push
 - Week 3: Research + system design documents (see `docs/supervisor-submission/`)
 - Week 4: Laravel API (auth, meetings, clash detection), Next.js UI shell — see `SETUP.md`
 - Week 5: NLP pipeline v1, natural language booking UI — see `SETUP.md` §3b and `docs/week5-supervisor-demo.md`
+- Week 6: Vertical slice polish (participants, rooms API, alternatives) — see `docs/week6-supervisor-demo.md`
 - Survey / ethics: instruments in `docs/research/` — launch after supervisor confirms

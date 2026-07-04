@@ -2,7 +2,7 @@
 
 **Purpose:** Single reference for your FYP — saved from planning work so you do not depend on Cursor chat history.
 
-**Last updated:** June 2026 (Week 5 — NLP pipeline v1)
+**Last updated:** July 2026 (Week 6 — vertical slice)
 
 ---
 
@@ -113,7 +113,7 @@ Form-based booking + strong clash detection + simplified NLP + survey evaluation
 | **Writing** | Literature Ch. 2 draft; gap section | ~60% — see `03-literature-review.md` §10 |
 | **Deliverable** | Supervisor demo: login, book meeting, clash check | Done |
 
-### 6.1b Week 5 — current (June 2026)
+### 6.1b Week 5 — complete
 
 | Area | Target | Status |
 |------|--------|--------|
@@ -124,6 +124,17 @@ Form-based booking + strong clash detection + simplified NLP + survey evaluation
 | **Research** | Preliminary survey analysis | Pending responses |
 | **Writing** | Literature ~60%; Methodology Ch. 3 draft | **In progress** |
 | **Deliverable** | Demo: utterance → proposed slot → clash → book | See `docs/week5-supervisor-demo.md` |
+
+### 6.1c Week 6 — current (July 2026)
+
+| Area | Target | Status |
+|------|--------|--------|
+| **Dev** | End-to-end vertical slice polish (catalog APIs, participants, clickable alternatives) | **Done** |
+| **Dev** | `GET /users`, `GET /rooms` for booking UI | **Done** |
+| **Research** | Requirements traceability matrix (RTM) | **Done** — `docs/research/requirements-traceability.md` |
+| **Research** | Survey / interviews live | Instruments ready — launch after ethics |
+| **Writing** | System design Ch. 4 draft | **Done** — `04-system-design-chapter-draft.md` |
+| **Deliverable** | Supervisor vertical-slice demo | See `docs/week6-supervisor-demo.md` |
 
 ### 6.2 Full schedule (Weeks 4–12)
 

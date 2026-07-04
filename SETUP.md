@@ -96,6 +96,14 @@ OPENAI_MODEL=gpt-4o-mini
 Without a key, the rule-based parser handles demo utterances such as:
 *"Book a supervision with Dr Jane Lecturer next Tuesday at 2pm in ENG-101"*
 
+## 3c. Week 6 features implemented
+
+- End-to-end vertical slice polish (form + NLP → clash → book → dashboard)
+- `GET /api/v1/users` and `GET /api/v1/rooms` for participant and room pickers
+- Clickable alternative slot suggestions on clash
+- Requirements traceability matrix: `docs/research/requirements-traceability.md`
+- Supervisor demo script: `docs/week6-supervisor-demo.md`
+
 ## 4. Tests
 
 ```powershell

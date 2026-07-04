@@ -20,6 +20,7 @@ This folder contains instruments and checklists for Week 4–5 research catch-up
 | [ethics-checklist.md](ethics-checklist.md) | UC ethics pathway, consent, data handling |
 | [survey-questionnaire.md](survey-questionnaire.md) | Online survey items (RQ1, RQ2, RQ5) |
 | [interview-guide.md](interview-guide.md) | Semi-structured interview script (3–5 participants) |
+| [requirements-traceability.md](requirements-traceability.md) | RTM: FR ↔ RQ ↔ implementation ↔ survey themes |
 
 ## Research question mapping
 
