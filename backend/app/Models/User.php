@@ -6,6 +6,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -21,6 +22,8 @@ class User extends Authenticatable
     public const ROLE_STUDENT = 'student';
 
     public const ROLE_LECTURER = 'lecturer';
+
+    public const ROLE_ADMIN = 'admin';
 
     protected function casts(): array
     {
@@ -40,6 +43,16 @@ class User extends Authenticatable
         return $this->hasMany(Availability::class);
     }
 
+    public function timetableSlots(): HasMany
+    {
+        return $this->hasMany(TimetableSlot::class);
+    }
+
+    public function courses(): BelongsToMany
+    {
+        return $this->belongsToMany(Course::class)->withTimestamps();
+    }
+
     public function meetingParticipations(): HasMany
     {
         return $this->hasMany(MeetingParticipant::class);
@@ -53,5 +66,10 @@ class User extends Authenticatable
     public function isStudent(): bool
     {
         return $this->role === self::ROLE_STUDENT;
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === self::ROLE_ADMIN;
     }
 }

@@ -121,13 +121,16 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html,
+  body {
+    @apply h-svh overflow-hidden;
+  }
   body {
     @apply bg-background text-foreground;
     -webkit-font-smoothing: antialiased;
   }
   html {
     @apply font-sans;
-    scroll-behavior: smooth;
   }
 }
 
@@ -135,7 +138,7 @@
 .app-bg {
   position: relative;
   isolation: isolate;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 .app-bg::before,
@@ -210,4 +213,199 @@
 
 .rise-in {
   animation: riseIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes authStaggerIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.auth-stagger > * {
+  animation: authStaggerIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.auth-stagger > *:nth-child(1) {
+  animation-delay: 0.05s;
+}
+.auth-stagger > *:nth-child(2) {
+  animation-delay: 0.12s;
+}
+.auth-stagger > *:nth-child(3) {
+  animation-delay: 0.19s;
+}
+.auth-stagger > *:nth-child(4) {
+  animation-delay: 0.26s;
+}
+.auth-stagger > *:nth-child(5) {
+  animation-delay: 0.33s;
+}
+
+@keyframes sectionFloatIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes sectionPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 1;
+  }
+}
+
+.motion-section {
+  position: relative;
+  border-radius: calc(var(--radius) * 1.4);
+  padding: 1rem;
+  animation: sectionFloatIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition:
+    transform 220ms ease,
+    box-shadow 220ms ease,
+    background-color 220ms ease;
+}
+
+.motion-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: color-mix(in oklch, var(--card) 84%, transparent);
+  opacity: 0.62;
+  transition:
+    opacity 220ms ease,
+    box-shadow 220ms ease,
+    transform 220ms ease;
+}
+
+.motion-section:hover,
+.motion-section:focus-within {
+  transform: translateY(-3px);
+}
+
+.motion-section:hover::before,
+.motion-section:focus-within::before {
+  opacity: 0.82;
+  box-shadow:
+    0 20px 45px color-mix(in oklch, var(--foreground) 10%, transparent),
+    0 0 0 1px color-mix(in oklch, var(--ring) 18%, transparent);
+}
+
+.motion-section-header {
+  transition: transform 220ms ease;
+}
+
+.motion-section:hover .motion-section-header,
+.motion-section:focus-within .motion-section-header {
+  transform: translateX(2px);
+}
+
+.motion-section-dot {
+  box-shadow: 0 0 0 0 color-mix(in oklch, currentColor 25%, transparent);
+  animation: sectionPulse 2.8s ease-in-out infinite;
+}
+
+.motion-section-count {
+  transition:
+    transform 200ms ease,
+    background-color 200ms ease,
+    border-color 200ms ease;
+}
+
+.motion-section:hover .motion-section-count,
+.motion-section:focus-within .motion-section-count {
+  transform: translateY(-1px) scale(1.03);
+}
+
+.motion-section-list > * {
+  animation: sectionFloatIn 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.motion-section-list > *:nth-child(1) { animation-delay: 0.04s; }
+.motion-section-list > *:nth-child(2) { animation-delay: 0.08s; }
+.motion-section-list > *:nth-child(3) { animation-delay: 0.12s; }
+.motion-section-list > *:nth-child(4) { animation-delay: 0.16s; }
+.motion-section-list > *:nth-child(5) { animation-delay: 0.2s; }
+
+.motion-empty {
+  transition:
+    transform 220ms ease,
+    box-shadow 220ms ease,
+    background-color 220ms ease;
+}
+
+.motion-section:hover .motion-empty,
+.motion-section:focus-within .motion-empty {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px color-mix(in oklch, var(--foreground) 8%, transparent);
+}
+
+@keyframes statPulseRing {
+  0% {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  15% {
+    opacity: 0.58;
+  }
+  55% {
+    opacity: 0.18;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.95);
+  }
+}
+
+.stat-pulse-ring {
+  pointer-events: none;
+  animation: statPulseRing 2.4s ease-out infinite;
+  filter: blur(0.2px);
+}
+
+.stat-pulse-ring-emerald {
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, oklch(0.7 0.18 160) 48%, transparent),
+    0 0 22px color-mix(in oklch, oklch(0.7 0.18 160) 28%, transparent);
+  background: radial-gradient(circle, color-mix(in oklch, oklch(0.7 0.18 160) 34%, transparent) 0%, transparent 68%);
+  animation-duration: 1.7s;
+}
+
+.stat-pulse-ring-violet {
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--primary) 44%, transparent),
+    0 0 20px color-mix(in oklch, var(--primary) 26%, transparent);
+  background: radial-gradient(circle, color-mix(in oklch, var(--primary) 28%, transparent) 0%, transparent 70%);
+  animation-duration: 2.1s;
+}
+
+.stat-pulse-ring-rose {
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, oklch(0.7 0.19 22) 34%, transparent),
+    0 0 18px color-mix(in oklch, oklch(0.7 0.19 22) 18%, transparent);
+  background: radial-gradient(circle, color-mix(in oklch, oklch(0.7 0.19 22) 20%, transparent) 0%, transparent 72%);
+  animation-duration: 2.6s;
+  opacity: 0.92;
+}
+
+.group\/stat:hover .stat-pulse-ring,
+.group\/stat:focus-within .stat-pulse-ring {
+  animation-duration: 1.45s;
+  opacity: 1;
 }

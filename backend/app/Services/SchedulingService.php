@@ -7,6 +7,7 @@ use App\Models\MeetingParticipant;
 use App\Models\Room;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class SchedulingService
@@ -34,6 +35,12 @@ class SchedulingService
             ]);
         }
 
+        if ($meeting->end_time->isPast()) {
+            throw ValidationException::withMessages([
+                'meeting' => ['Finished meetings cannot be updated.'],
+            ]);
+        }
+
         $payload = array_merge([
             'title' => $meeting->title,
             'description' => $meeting->description,
@@ -41,6 +48,8 @@ class SchedulingService
             'end_time' => $meeting->end_time->toDateTimeString(),
             'room_id' => $meeting->room_id,
             'participant_ids' => $meeting->participants()->pluck('user_id')->all(),
+            'meeting_mode' => $meeting->meeting_mode,
+            'meeting_url' => $meeting->meeting_url,
         ], $data);
 
         return $this->persistMeeting($payload, $meeting->organizer_id, $meeting->id, $meeting);
@@ -48,6 +57,12 @@ class SchedulingService
 
     public function cancelMeeting(Meeting $meeting): Meeting
     {
+        if ($meeting->end_time->isPast()) {
+            throw ValidationException::withMessages([
+                'meeting' => ['Finished meetings cannot be cancelled.'],
+            ]);
+        }
+
         $meeting->update(['status' => 'cancelled']);
 
         return $meeting->fresh(['room', 'organizer', 'participants.user']);
@@ -92,7 +107,9 @@ class SchedulingService
             ]);
         }
 
-        return DB::transaction(function () use ($data, $organizerId, $participantIds, $start, $end, $roomId, $clashes, $existing) {
+        [$meetingMode, $meetingUrl] = $this->resolveMeetingDelivery($data, $existing);
+
+        return DB::transaction(function () use ($data, $organizerId, $participantIds, $start, $end, $roomId, $clashes, $existing, $meetingMode, $meetingUrl) {
             if ($existing) {
                 $existing->update([
                     'room_id' => $roomId,
@@ -100,6 +117,8 @@ class SchedulingService
                     'description' => $data['description'] ?? null,
                     'start_time' => $start,
                     'end_time' => $end,
+                    'meeting_mode' => $meetingMode,
+                    'meeting_url' => $meetingUrl,
                 ]);
                 $meeting = $existing;
                 $meeting->participants()->delete();
@@ -112,6 +131,14 @@ class SchedulingService
                     'start_time' => $start,
                     'end_time' => $end,
                     'status' => 'scheduled',
+                    'meeting_mode' => $meetingMode,
+                    'meeting_url' => $meetingUrl,
+                ]);
+            }
+
+            if ($meetingMode === Meeting::MODE_JITSI && blank($meeting->meeting_url)) {
+                $meeting->update([
+                    'meeting_url' => $this->buildJitsiUrl($meeting),
                 ]);
             }
 
@@ -127,8 +154,47 @@ class SchedulingService
                 $this->clashDetection->logClashes($meeting, $clashes);
             }
 
-            return $meeting->load(['room', 'organizer', 'participants.user']);
+            return $meeting->fresh(['room', 'organizer', 'participants.user']);
         });
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{0: string, 1: ?string}
+     */
+    private function resolveMeetingDelivery(array $data, ?Meeting $existing = null): array
+    {
+        $mode = $data['meeting_mode']
+            ?? $existing?->meeting_mode
+            ?? Meeting::MODE_JITSI;
+
+        if (! in_array($mode, [Meeting::MODE_JITSI, Meeting::MODE_EXTERNAL], true)) {
+            $mode = Meeting::MODE_JITSI;
+        }
+
+        if ($mode === Meeting::MODE_EXTERNAL) {
+            $url = $data['meeting_url'] ?? $existing?->meeting_url;
+            if (! is_string($url) || trim($url) === '') {
+                throw ValidationException::withMessages([
+                    'meeting_url' => ['An external meeting link is required.'],
+                ]);
+            }
+
+            return [Meeting::MODE_EXTERNAL, trim($url)];
+        }
+
+        $url = $data['meeting_url'] ?? $existing?->meeting_url;
+
+        return [Meeting::MODE_JITSI, is_string($url) && $url !== '' ? $url : null];
+    }
+
+    private function buildJitsiUrl(Meeting $meeting): string
+    {
+        $base = rtrim((string) config('services.jitsi.base_url', 'https://meet.jit.si'), '/');
+        $slug = Str::slug(Str::limit($meeting->title, 40, ''));
+        $room = 'UniSchedule-'.$meeting->id.($slug !== '' ? '-'.$slug : '').'-'.Str::lower(Str::random(6));
+
+        return $base.'/'.$room;
     }
 
     private function validateRoomCapacity(int $roomId, array $participantIds): void

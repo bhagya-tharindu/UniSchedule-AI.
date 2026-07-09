@@ -7,13 +7,14 @@ use App\Models\Room;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class NlpSchedulingService
 {
     private const DEFAULT_DURATION_MINUTES = 60;
 
-    public function parse(string $text, User $organizer): ParsedMeetingRequest
+    public function parse(string $text, User $organizer, ?string $meetingMode = null): ParsedMeetingRequest
     {
         $text = trim($text);
 
@@ -21,23 +22,144 @@ class NlpSchedulingService
             return $this->emptyProposal($text, ['Text is required.']);
         }
 
+        $online = $this->isOnlineDelivery($text, $meetingMode);
+
         if ($this->llmConfigured()) {
             try {
-                return $this->parseWithLlm($text, $organizer);
-            } catch (\Throwable) {
-                // Fall back to rules when LLM is unavailable.
+                return $this->parseWithLlm($text, $organizer, $online);
+            } catch (\Throwable $e) {
+                Log::warning('NLP LLM parse failed; using rule-based fallback', [
+                    'message' => $e->getMessage(),
+                    'base_url' => config('services.openai.base_url'),
+                    'model' => config('services.openai.model'),
+                    'key_configured' => (bool) config('services.openai.api_key'),
+                ]);
             }
+        } else {
+            Log::info('NLP LLM not configured; using rule-based parser');
         }
 
-        return $this->parseWithRules($text, $organizer);
+        return $this->parseWithRules($text, $organizer, $online);
+    }
+
+    /**
+     * Jitsi / external meetings (or online wording) do not use campus classrooms.
+     */
+    private function isOnlineDelivery(string $text, ?string $meetingMode): bool
+    {
+        if (in_array($meetingMode, ['jitsi', 'external'], true)) {
+            return true;
+        }
+
+        $lower = Str::lower($text);
+
+        return Str::contains($lower, [
+            'online',
+            'jitsi',
+            'zoom',
+            'teams',
+            'virtual',
+            'video call',
+            'video meeting',
+            'google meet',
+            'meet.google',
+        ]);
     }
 
     private function llmConfigured(): bool
     {
-        return (bool) config('services.openai.api_key');
+        $key = config('services.openai.api_key');
+
+        return is_string($key) && trim($key) !== '';
     }
 
-    private function parseWithLlm(string $text, User $organizer): ParsedMeetingRequest
+    /**
+     * @param  array<int, array{role: string, content: string}>  $messages
+     */
+    private function requestChatCompletion(string $url, array $messages, bool $withJsonFormat): string
+    {
+        $payload = [
+            'model' => config('services.openai.model'),
+            'temperature' => 0.1,
+            'messages' => $messages,
+        ];
+
+        if ($withJsonFormat) {
+            $payload['response_format'] = ['type' => 'json_object'];
+        }
+
+        $http = Http::withToken((string) config('services.openai.api_key'))
+            ->acceptJson()
+            ->timeout((int) config('services.openai.timeout', 30));
+
+        // Local Windows PHP often lacks CA certs (cURL error 60).
+        if (config('services.openai.verify_ssl') === false) {
+            $http = $http->withoutVerifying();
+        }
+
+        $response = $http->post($url, $payload);
+
+        // Retry once without response_format (some Groq models reject it).
+        if (! $response->successful() && $withJsonFormat) {
+            Log::warning('NLP LLM request failed with response_format; retrying without it', [
+                'url' => $url,
+                'model' => config('services.openai.model'),
+                'status' => $response->status(),
+                'body' => Str::limit($response->body(), 500),
+            ]);
+
+            return $this->requestChatCompletion($url, $messages, withJsonFormat: false);
+        }
+
+        if (! $response->successful()) {
+            throw new \RuntimeException(
+                'LLM request failed: '.$response->status().' '.Str::limit($response->body(), 800)
+            );
+        }
+
+        Log::info('NLP LLM request succeeded', [
+            'url' => $url,
+            'model' => config('services.openai.model'),
+            'status' => $response->status(),
+        ]);
+
+        $content = $response->json('choices.0.message.content');
+        if (! is_string($content) || trim($content) === '') {
+            throw new \RuntimeException('Invalid LLM response shape: missing message content.');
+        }
+
+        return $content;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function decodeJsonContent(string $content): array
+    {
+        $content = trim($content);
+
+        // Models sometimes wrap JSON in ```json ... ```
+        if (preg_match('/```(?:json)?\s*(\{.*\})\s*```/s', $content, $m)) {
+            $content = $m[1];
+        } elseif (! str_starts_with($content, '{')) {
+            $start = strpos($content, '{');
+            $end = strrpos($content, '}');
+            if ($start !== false && $end !== false && $end > $start) {
+                $content = substr($content, $start, $end - $start + 1);
+            }
+        }
+
+        try {
+            /** @var array<string, mixed> $decoded */
+            $decoded = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            throw new \RuntimeException('LLM returned non-JSON content: '.Str::limit($content, 300), 0, $e);
+        }
+
+        return $decoded;
+    }
+
+    private function parseWithLlm(string $text, User $organizer, bool $online = false): ParsedMeetingRequest
     {
         $tz = config('app.timezone');
         $now = Carbon::now($tz)->toIso8601String();
@@ -51,6 +173,10 @@ class NlpSchedulingService
             ->map(fn (Room $r) => "{$r->name} in {$r->building} (id:{$r->id})")
             ->implode('; ');
 
+        $roomInstruction = $online
+            ? 'This is an ONLINE meeting (Jitsi/video). Always set room_name to null even if a campus room code is mentioned.'
+            : 'room_name: campus room code if mentioned (e.g. ENG-101), otherwise null.';
+
         $systemPrompt = <<<PROMPT
 You extract meeting scheduling intent for a university scheduler in timezone {$tz}.
 Return ONLY valid JSON with these keys:
@@ -59,9 +185,11 @@ Return ONLY valid JSON with these keys:
 - description: string or null
 - start_time: ISO8601 datetime in {$tz} or null
 - end_time: ISO8601 datetime in {$tz} or null (default 60 min after start if omitted)
-- participant_names: array of full or partial names mentioned
+- participant_names: array of full or partial names mentioned (include titles like Dr)
 - room_name: string or null
 - confidence: number 0-1
+
+{$roomInstruction}
 
 Known users: {$users}
 Known rooms: {$rooms}
@@ -69,29 +197,20 @@ Current user: {$organizer->name} (organizer, not a participant unless explicitly
 Today: {$now}
 PROMPT;
 
-        $response = Http::withToken(config('services.openai.api_key'))
-            ->timeout((int) config('services.openai.timeout', 30))
-            ->post(rtrim(config('services.openai.base_url'), '/').'/chat/completions', [
-                'model' => config('services.openai.model'),
-                'temperature' => 0.1,
-                'response_format' => ['type' => 'json_object'],
-                'messages' => [
-                    ['role' => 'system', 'content' => $systemPrompt],
-                    ['role' => 'user', 'content' => $text],
-                ],
-            ]);
+        $messages = [
+            ['role' => 'system', 'content' => $systemPrompt],
+            ['role' => 'user', 'content' => $text],
+        ];
 
-        if (! $response->successful()) {
-            throw new \RuntimeException('LLM request failed: '.$response->status());
-        }
-
-        $content = $response->json('choices.0.message.content');
-        if (! is_string($content)) {
-            throw new \RuntimeException('Invalid LLM response shape.');
-        }
+        $url = rtrim((string) config('services.openai.base_url'), '/').'/chat/completions';
+        $content = $this->requestChatCompletion($url, $messages, withJsonFormat: true);
 
         /** @var array<string, mixed> $payload */
-        $payload = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
+        $payload = $this->decodeJsonContent($content);
+
+        $roomName = $online
+            ? null
+            : (isset($payload['room_name']) ? (string) $payload['room_name'] : null);
 
         return $this->buildProposal(
             text: $text,
@@ -103,14 +222,15 @@ PROMPT;
             participantNames: array_values(array_filter(
                 array_map('strval', $payload['participant_names'] ?? []),
             )),
-            roomName: isset($payload['room_name']) ? (string) $payload['room_name'] : null,
+            roomName: $roomName,
             confidence: (float) ($payload['confidence'] ?? 0.75),
             parser: 'llm',
             organizer: $organizer,
+            online: $online,
         );
     }
 
-    private function parseWithRules(string $text, User $organizer): ParsedMeetingRequest
+    private function parseWithRules(string $text, User $organizer, bool $online = false): ParsedMeetingRequest
     {
         $lower = Str::lower($text);
 
@@ -123,7 +243,7 @@ PROMPT;
 
         $title = $this->extractTitle($text);
         $participantNames = $this->extractParticipantNames($text);
-        $roomName = $this->extractRoomName($text);
+        $roomName = $online ? null : $this->extractRoomName($text);
         [$startTime, $endTime] = $this->extractDateTimes($text);
 
         return $this->buildProposal(
@@ -138,6 +258,7 @@ PROMPT;
             confidence: $startTime ? 0.65 : 0.4,
             parser: 'rules',
             organizer: $organizer,
+            online: $online,
         );
     }
 
@@ -156,6 +277,7 @@ PROMPT;
         float $confidence,
         string $parser,
         User $organizer,
+        bool $online = false,
     ): ParsedMeetingRequest {
         $tz = config('app.timezone');
         $errors = [];
@@ -182,8 +304,10 @@ PROMPT;
             $errors[] = 'Could not match mentioned participants to registered users.';
         }
 
-        $roomId = $this->resolveRoomId($roomName);
-        if ($roomName && $roomId === null) {
+        // Online (Jitsi / external) never binds a campus classroom.
+        $resolvedRoomName = $online ? null : $roomName;
+        $roomId = $online ? null : $this->resolveRoomId($resolvedRoomName);
+        if (! $online && $resolvedRoomName && $roomId === null) {
             $errors[] = 'Could not match mentioned room to registered rooms.';
         }
 
@@ -204,7 +328,7 @@ PROMPT;
             participantIds: $participantIds,
             participantNames: $participantNames,
             roomId: $roomId,
-            roomName: $roomName,
+            roomName: $resolvedRoomName,
             confidence: $confidence,
             parser: $parser,
             rawText: $text,
@@ -251,12 +375,15 @@ PROMPT;
     {
         $names = [];
 
-        if (preg_match('/\bwith\s+(?:dr\.?\s+)?([a-z][a-z\s\'.-]+?)(?:\s+(?:next|on|at|tomorrow|today|in)\b|[,.]|$)/i', $text, $m)) {
+        // Prefer full academic names: "Dr Jane Lecturer"
+        if (preg_match('/\bwith\s+(dr\.?\s+[a-z]+(?:\s+[a-z]+)+)/i', $text, $m)) {
+            $names[] = trim(preg_replace('/\s+/', ' ', $m[1]));
+        } elseif (preg_match('/\bwith\s+([a-z][a-z\s\'.-]+?)(?:\s+(?:next|on|at|tomorrow|today|in|online)\b|[,.]|$)/i', $text, $m)) {
             $names[] = trim($m[1]);
         }
 
-        if (preg_match('/\b(?:dr\.?\s+)?([a-z]+)\s+lecturer\b/i', $text, $m)) {
-            $names[] = trim($m[0]);
+        if (preg_match('/\b(dr\.?\s+[a-z]+\s+lecturer)\b/i', $text, $m)) {
+            $names[] = trim(preg_replace('/\s+/', ' ', $m[1]));
         }
 
         return array_values(array_unique(array_filter($names)));

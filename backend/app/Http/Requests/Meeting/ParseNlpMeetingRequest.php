@@ -15,6 +15,7 @@ class ParseNlpMeetingRequest extends FormRequest
     {
         return [
             'text' => ['required', 'string', 'min:3', 'max:2000'],
+            'meeting_mode' => ['sometimes', 'nullable', 'in:jitsi,external'],
         ];
     }
 }

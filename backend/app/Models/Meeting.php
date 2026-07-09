@@ -8,6 +8,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Meeting extends Model
 {
+    public const MODE_JITSI = 'jitsi';
+
+    public const MODE_EXTERNAL = 'external';
+
     protected $fillable = [
         'organizer_id',
         'room_id',
@@ -16,6 +20,8 @@ class Meeting extends Model
         'start_time',
         'end_time',
         'status',
+        'meeting_mode',
+        'meeting_url',
     ];
 
     protected function casts(): array

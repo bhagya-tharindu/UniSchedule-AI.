@@ -48,8 +48,11 @@ Demo accounts (password: `password`):
 
 | Email | Role |
 |-------|------|
+| admin@unischedule.test | admin |
 | student@unischedule.test | student |
 | lecturer@unischedule.test | lecturer |
+
+Public registration is **disabled**. Only admins create users (Admin → Users).
 
 ### Run API
 
@@ -72,7 +75,7 @@ Open: `http://localhost:3000`
 
 ## 3. Week 4 features implemented
 
-- Sanctum token auth (register, login, logout, me)
+- Sanctum token auth (login, logout, me); admin-only user creation
 - Meeting CRUD with organizer-only update/cancel
 - Clash detection (participant overlap, availability, room, policy rules)
 - Alternative slot suggestions on clash check
@@ -86,15 +89,30 @@ Open: `http://localhost:3000`
 - Clash preview included in NLP parse response
 - Tests: `NlpParseMeetingTest` (run with `php artisan test`)
 
-### Optional LLM config (`backend/.env`)
+### Optional LLM config (`backend/.env`) — Groq free tier
+
+Uses any **OpenAI-compatible** API. Groq example:
 
 ```
-OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-4o-mini
+OPENAI_API_KEY=gsk_your_key_from_console.groq.com
+OPENAI_BASE_URL=https://api.groq.com/openai/v1
+OPENAI_MODEL=llama-3.1-8b-instant
+OPENAI_TIMEOUT=30
+OPENAI_VERIFY_SSL=false
 ```
+
+On Windows, if PHP lacks CA certificates you may see **cURL error 60** and silent fallback to rules. `OPENAI_VERIFY_SSL=false` is for **local demo only**; use `true` in production (or install a CA bundle in `php.ini`).
+
+After changing `.env`:
+
+```powershell
+php artisan config:clear
+```
+
+Restart `php artisan serve`. Parse a natural-language request — the UI badge should show **LLM** (not Rule-based).
 
 Without a key, the rule-based parser handles demo utterances such as:
-*"Book a supervision with Dr Jane Lecturer next Tuesday at 2pm in ENG-101"*
+*"Book a supervision with Dr Jane Lecturer next Tuesday at 2pm online"*
 
 ## 3c. Week 6 features implemented
 
@@ -103,6 +121,29 @@ Without a key, the rule-based parser handles demo utterances such as:
 - Clickable alternative slot suggestions on clash
 - Requirements traceability matrix: `docs/research/requirements-traceability.md`
 - Supervisor demo script: `docs/week6-supervisor-demo.md`
+
+## 3d. Meeting delivery (Jitsi + external links)
+
+- **UniSchedule (Jitsi):** auto-creates a room on `JITSI_BASE_URL` (default `https://meet.jit.si`)
+- **External link:** paste Zoom / Teams / Meet / any `https` URL
+- Dashboard **Join** — Jitsi opens in-app (`/dashboard/meetings/{id}/join`); external opens in a new tab
+- **Meet now** — one-click instant Jitsi meeting (30 min, starts now) and opens Join
+
+## 3e. Courses, exams, and lecture timetables
+
+- **Courses** (admin): enrol users; set **per-course exam periods** (different courses can have different exam weeks)
+- Booking is blocked only if a **participant is enrolled** in a course with an active exam period on that date
+- Optional **campus-wide blackouts** (admin) still block everyone
+- **My timetable** — weekly lecture/lab slots (admin-managed); meetings cannot overlap them
+- **My course exams** — read-only list of exam periods for your enrolments
+- Seeded: COSC261 (student+lecturer, exams 1–7 Sep 2026), INFO213 (student only, exams 15–21 Sep 2026)
+- **Meet now** still uses `force` and can bypass these rules; normal schedule / NLP / check-clash enforce them
+
+```powershell
+cd D:\UniScheduleAI\backend
+php artisan migrate
+php artisan db:seed
+```
 
 ## 4. Tests
 

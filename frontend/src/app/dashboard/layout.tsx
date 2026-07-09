@@ -3,7 +3,18 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CalendarDays, LogOut, Plus, UserRound } from "lucide-react";
+import { toast } from "sonner";
+import {
+  BookOpen,
+  CalendarDays,
+  CalendarRange,
+  GraduationCap,
+  LogOut,
+  Plus,
+  Shield,
+  UserRound,
+  Users,
+} from "lucide-react";
 import { api, setToken, type User } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -60,8 +71,8 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="app-bg min-h-full">
-      <header className="glass border-border/60 sticky top-0 z-20 border-b">
+    <div className="app-bg flex h-full min-h-0 flex-col overflow-hidden">
+      <header className="glass border-border/60 z-20 shrink-0 border-b">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <Link href="/dashboard" className="flex items-center gap-2.5">
             <div className="bg-primary text-primary-foreground flex h-9 w-9 items-center justify-center rounded-xl shadow-sm">
@@ -118,6 +129,54 @@ export default function DashboardLayout({
                       My meetings
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/academic/timetable">
+                      <BookOpen />
+                      My timetable
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/academic/my-exams">
+                      <GraduationCap />
+                      My course exams
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/academic/exams">
+                      <CalendarRange />
+                      Campus blackouts
+                    </Link>
+                  </DropdownMenuItem>
+                  {user.role === "admin" && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link href="/dashboard/admin/users">
+                          <Users />
+                          Admin: Users
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/dashboard/admin/courses">
+                          <GraduationCap />
+                          Admin: Courses
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/dashboard/admin/exams">
+                          <Shield />
+                          Admin: Campus blackouts
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/dashboard/admin/timetables">
+                          <BookOpen />
+                          Admin: Timetables
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem variant="destructive" onClick={logout}>
                     <LogOut />
                     Log out
@@ -129,7 +188,10 @@ export default function DashboardLayout({
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
+      {/* Full-width scroll region so only one scrollbar sits on the viewport edge */}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <main className="mx-auto w-full max-w-5xl px-4 py-8">{children}</main>
+      </div>
     </div>
   );
 }

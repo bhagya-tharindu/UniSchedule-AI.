@@ -28,16 +28,16 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-svh overflow-hidden antialiased`}
     >
-      <body className="flex min-h-full flex-col">
+      <body className="h-svh overflow-hidden">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <div className="flex h-svh flex-col overflow-hidden">{children}</div>
           <Toaster richColors position="top-center" />
         </ThemeProvider>
       </body>

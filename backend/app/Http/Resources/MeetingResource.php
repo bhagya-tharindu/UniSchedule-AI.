@@ -19,6 +19,8 @@ class MeetingResource extends JsonResource
             'start_time' => $this->start_time?->toIso8601String(),
             'end_time' => $this->end_time?->toIso8601String(),
             'status' => $this->status,
+            'meeting_mode' => $this->meeting_mode,
+            'meeting_url' => $this->meeting_url,
             'organizer' => new UserResource($this->whenLoaded('organizer')),
             'room' => $this->whenLoaded('room', fn () => [
                 'id' => $this->room->id,

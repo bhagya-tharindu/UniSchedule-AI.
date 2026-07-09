@@ -65,7 +65,7 @@ return [
     |
     */
 
-    'timezone' => env('APP_TIMEZONE', 'Pacific/Auckland'),
+    'timezone' => env('APP_TIMEZONE', 'Asia/Colombo'),
 
     /*
     |--------------------------------------------------------------------------

@@ -21,6 +21,8 @@ class StoreMeetingRequest extends FormRequest
             'room_id' => ['nullable', 'exists:rooms,id'],
             'participant_ids' => ['nullable', 'array'],
             'participant_ids.*' => ['exists:users,id'],
+            'meeting_mode' => ['sometimes', 'in:jitsi,external'],
+            'meeting_url' => ['nullable', 'url', 'max:500', 'required_if:meeting_mode,external'],
             'force' => ['sometimes', 'boolean'],
         ];
     }

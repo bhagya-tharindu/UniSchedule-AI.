@@ -6,13 +6,16 @@ import { toast } from "sonner";
 import {
   CalendarDays,
   CheckCircle2,
+  Link2,
   Sparkles,
   TriangleAlert,
   Users,
+  Video,
   Zap,
 } from "lucide-react";
 import {
   api,
+  type MeetingMode,
   type ParsedMeetingProposal,
   type Room,
   type SlotSuggestion,
@@ -69,7 +72,7 @@ export default function NewMeetingPage() {
   const router = useRouter();
   const [mode, setMode] = useState<"form" | "nlp">("form");
   const [nlpText, setNlpText] = useState(
-    "Book a supervision with Dr Jane Lecturer next Tuesday at 2pm in ENG-101",
+    "Book a supervision with Dr Jane Lecturer next Tuesday at 2pm online",
   );
   const [parsed, setParsed] = useState<ParsedMeetingProposal | null>(null);
   const [title, setTitle] = useState("");
@@ -77,6 +80,8 @@ export default function NewMeetingPage() {
   const [startTime, setStartTime] = useState(defaultSlot.start);
   const [endTime, setEndTime] = useState(defaultSlot.end);
   const [roomId, setRoomId] = useState<string>("");
+  const [meetingMode, setMeetingMode] = useState<MeetingMode>("jitsi");
+  const [meetingUrl, setMeetingUrl] = useState("");
   const [participantIds, setParticipantIds] = useState<number[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -130,7 +135,12 @@ export default function NewMeetingPage() {
     if (proposal.description) setDescription(proposal.description);
     if (proposal.start_time) setStartTime(toDatetimeLocal(proposal.start_time));
     if (proposal.end_time) setEndTime(toDatetimeLocal(proposal.end_time));
-    if (proposal.room_id) setRoomId(String(proposal.room_id));
+    // Online modes never use a physical classroom (even if NLP mentioned one).
+    if (meetingMode === "jitsi" || meetingMode === "external") {
+      setRoomId("");
+    } else if (proposal.room_id) {
+      setRoomId(String(proposal.room_id));
+    }
     setParticipantIds(proposal.participant_ids);
 
     if (proposal.has_clashes) {
@@ -167,7 +177,10 @@ export default function NewMeetingPage() {
     setError(null);
     clearClashState();
     try {
-      const res = await api.parseNlp({ text: nlpText });
+      const res = await api.parseNlp({
+        text: nlpText,
+        meeting_mode: meetingMode,
+      });
       applyParsedProposal(res.data);
       setMode("form");
       toast.success("Request parsed", {
@@ -186,12 +199,14 @@ export default function NewMeetingPage() {
     setError(null);
     clearClashState();
     try {
-      const res = await api.checkClash({
-        start_time: startTime,
-        end_time: endTime,
-        room_id: roomId ? Number(roomId) : null,
-        participant_ids: participantIds.length > 0 ? participantIds : undefined,
-      });
+    const isOnline =
+      meetingMode === "jitsi" || meetingMode === "external";
+    const res = await api.checkClash({
+      start_time: startTime,
+      end_time: endTime,
+      room_id: isOnline ? null : roomId ? Number(roomId) : null,
+      participant_ids: participantIds.length > 0 ? participantIds : undefined,
+    });
       applyClashResult(res);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not check clashes");
@@ -205,13 +220,25 @@ export default function NewMeetingPage() {
     setLoading(true);
     setError(null);
     try {
+      if (meetingMode === "external" && !meetingUrl.trim()) {
+        setError("Paste an external meeting link (Zoom, Teams, Meet, etc.).");
+        setLoading(false);
+        return;
+      }
+
+      const isOnline =
+        meetingMode === "jitsi" || meetingMode === "external";
+
       await api.createMeeting({
         title,
         description: description || null,
         start_time: startTime,
         end_time: endTime,
-        room_id: roomId ? Number(roomId) : null,
+        room_id: isOnline ? null : roomId ? Number(roomId) : null,
         participant_ids: participantIds.length > 0 ? participantIds : undefined,
+        meeting_mode: meetingMode,
+        meeting_url:
+          meetingMode === "external" ? meetingUrl.trim() : undefined,
       });
       toast.success("Meeting created");
       router.push("/dashboard");
@@ -270,7 +297,7 @@ export default function NewMeetingPage() {
                   value={nlpText}
                   onChange={(e) => setNlpText(e.target.value)}
                   rows={3}
-                  placeholder='e.g. "Book supervision with Dr Jane Lecturer next Tuesday at 2pm in ENG-101"'
+                  placeholder='e.g. "Book supervision with Dr Jane Lecturer next Tuesday at 2pm online"'
                 />
               </div>
               <Button
@@ -396,27 +423,50 @@ export default function NewMeetingPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Room (optional)</Label>
-              <Select
-                value={roomId || undefined}
+              <Label>How will you meet?</Label>
+              <Tabs
+                value={meetingMode}
                 onValueChange={(v) => {
-                  setRoomId(v === "none" ? "" : v);
-                  clearClashState();
+                  const next = v as MeetingMode;
+                  setMeetingMode(next);
+                  // Online meetings do not use a campus classroom.
+                  if (next === "jitsi" || next === "external") {
+                    setRoomId("");
+                    clearClashState();
+                  }
                 }}
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a room" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No room</SelectItem>
-                  {rooms.map((r) => (
-                    <SelectItem key={r.id} value={String(r.id)}>
-                      {r.name}
-                      {r.building ? ` · ${r.building}` : ""} (cap. {r.capacity})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <TabsList className="w-full">
+                  <TabsTrigger value="jitsi" className="flex-1">
+                    <Video />
+                    UniSchedule (Jitsi)
+                  </TabsTrigger>
+                  <TabsTrigger value="external" className="flex-1">
+                    <Link2 />
+                    External link
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+              {meetingMode === "jitsi" ? (
+                <p className="text-muted-foreground text-xs">
+                  A Jitsi video room is created automatically.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="meeting-url">Meeting link</Label>
+                  <Input
+                    id="meeting-url"
+                    type="url"
+                    required={meetingMode === "external"}
+                    value={meetingUrl}
+                    onChange={(e) => setMeetingUrl(e.target.value)}
+                    placeholder="https://zoom.us/j/… or Teams / Meet link"
+                  />
+                  <p className="text-muted-foreground text-xs">
+                    Online meeting — no campus classroom required.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -458,11 +508,6 @@ export default function NewMeetingPage() {
                 </p>
               )}
             </div>
-
-            <p className="text-muted-foreground bg-muted/50 rounded-lg px-3 py-2 text-xs">
-              Demo availability: weekdays 08:00–20:00 for seeded users. Clash
-              detection runs in Laravel before any booking is saved.
-            </p>
 
             <div className="flex flex-wrap gap-3 pt-1">
               <Button

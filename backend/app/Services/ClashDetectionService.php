@@ -4,10 +4,11 @@ namespace App\Services;
 
 use App\Models\ClashRecord;
 use App\Models\ConstraintRule;
+use App\Models\CourseExamPeriod;
 use App\Models\Meeting;
+use App\Models\TimetableSlot;
 use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Support\Collection;
 
 class ClashDetectionService
 {
@@ -40,6 +41,14 @@ class ClashDetectionService
             $clashes = array_merge(
                 $clashes,
                 $this->detectAvailabilityClash($participantId, $start, $end),
+            );
+            $clashes = array_merge(
+                $clashes,
+                $this->detectTimetableClash($participantId, $start, $end),
+            );
+            $clashes = array_merge(
+                $clashes,
+                $this->detectCourseExamClash($participantId, $start, $end),
             );
         }
 
@@ -163,27 +172,112 @@ class ClashDetectionService
     }
 
     /**
+     * Block meetings that fall on a participant's lecture / class timetable slot.
+     *
+     * @return array<int, array{type: string, message: string}>
+     */
+    private function detectTimetableClash(int $userId, Carbon $start, Carbon $end): array
+    {
+        $user = User::find($userId);
+        $meetingDate = $start->toDateString();
+        $dayOfWeek = $start->dayOfWeek;
+        $startMinutes = $this->minutesSinceMidnight($start);
+        $endMinutes = $this->minutesSinceMidnight($end);
+
+        $slots = TimetableSlot::query()
+            ->where('user_id', $userId)
+            ->where('is_active', true)
+            ->where('day_of_week', $dayOfWeek)
+            ->where(function ($q) use ($meetingDate) {
+                $q->whereNull('valid_from')->orWhere('valid_from', '<=', $meetingDate);
+            })
+            ->where(function ($q) use ($meetingDate) {
+                $q->whereNull('valid_to')->orWhere('valid_to', '>=', $meetingDate);
+            })
+            ->get();
+
+        foreach ($slots as $slot) {
+            $slotStart = $this->minutesSinceMidnight($slot->start_time);
+            $slotEnd = $this->minutesSinceMidnight($slot->end_time);
+
+            if ($startMinutes < $slotEnd && $endMinutes > $slotStart) {
+                return [[
+                    'type' => 'timetable',
+                    'message' => sprintf(
+                        '%s has a timetable commitment (%s) during this time.',
+                        $user?->name ?? 'Participant',
+                        $slot->title,
+                    ),
+                ]];
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * Block meetings when a participant is enrolled in a course with an active exam period.
+     *
+     * @return array<int, array{type: string, message: string}>
+     */
+    private function detectCourseExamClash(int $userId, Carbon $start, Carbon $end): array
+    {
+        $user = User::with('courses')->find($userId);
+        if (! $user || $user->courses->isEmpty()) {
+            return [];
+        }
+
+        $meetingDate = $start->toDateString();
+        $courseIds = $user->courses->pluck('id');
+
+        $period = CourseExamPeriod::query()
+            ->with('course')
+            ->whereIn('course_id', $courseIds)
+            ->where('is_active', true)
+            ->where('valid_from', '<=', $meetingDate)
+            ->where('valid_to', '>=', $meetingDate)
+            ->first();
+
+        if (! $period) {
+            return [];
+        }
+
+        return [[
+            'type' => 'exam',
+            'message' => sprintf(
+                '%s has exams for %s (%s).',
+                $user->name,
+                $period->course?->code ?? 'a course',
+                $period->name,
+            ),
+        ]];
+    }
+
+    /**
+     * Block meetings whose date falls inside an active campus-wide exam blackout.
+     *
      * @return array<int, array{type: string, message: string}>
      */
     private function detectPolicyClashes(Carbon $start, Carbon $end): array
     {
         $clashes = [];
+        $meetingDate = $start->toDateString();
 
         $blackouts = ConstraintRule::query()
             ->where('is_active', true)
             ->where('rule_type', 'exam_blackout')
-            ->where(function ($q) use ($start) {
-                $q->whereNull('valid_from')->orWhere('valid_from', '<=', $start->toDateString());
+            ->where(function ($q) use ($meetingDate) {
+                $q->whereNull('valid_from')->orWhere('valid_from', '<=', $meetingDate);
             })
-            ->where(function ($q) use ($start) {
-                $q->whereNull('valid_to')->orWhere('valid_to', '>=', $start->toDateString());
+            ->where(function ($q) use ($meetingDate) {
+                $q->whereNull('valid_to')->orWhere('valid_to', '>=', $meetingDate);
             })
             ->get();
 
         foreach ($blackouts as $rule) {
             $clashes[] = [
                 'type' => 'policy',
-                'message' => sprintf('Booking blocked: %s.', $rule->name),
+                'message' => sprintf('Campus-wide blackout: %s.', $rule->name),
             ];
         }
 

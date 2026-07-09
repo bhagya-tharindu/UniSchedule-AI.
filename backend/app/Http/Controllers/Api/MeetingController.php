@@ -96,9 +96,12 @@ class MeetingController extends Controller
 
     public function parseNlp(ParseNlpMeetingRequest $request): JsonResponse
     {
+        $meetingMode = $request->validated('meeting_mode');
+
         $parsed = $this->nlpScheduling->parse(
             $request->validated('text'),
             $request->user(),
+            is_string($meetingMode) ? $meetingMode : null,
         );
 
         $payload = $parsed->toArray();
@@ -116,11 +119,14 @@ class MeetingController extends Controller
                 ->values()
                 ->all();
 
+            // Online delivery never checks physical room clashes.
+            $roomId = $parsed->roomId;
+
             $clashes = $this->clashDetection->detect(
                 $start,
                 $end,
                 $participantIds,
-                $parsed->roomId,
+                $roomId,
             );
 
             $payload['has_clashes'] = ! empty($clashes);
@@ -132,7 +138,7 @@ class MeetingController extends Controller
                     $start,
                     $duration,
                     $participantIds,
-                    $parsed->roomId,
+                    $roomId,
                 )->all();
             }
         }

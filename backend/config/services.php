@@ -40,6 +40,12 @@ return [
         'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
         'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
         'timeout' => env('OPENAI_TIMEOUT', 30),
+        // Set false only on local Windows if PHP lacks CA certs (cURL error 60).
+        'verify_ssl' => filter_var(env('OPENAI_VERIFY_SSL', true), FILTER_VALIDATE_BOOL),
+    ],
+
+    'jitsi' => [
+        'base_url' => env('JITSI_BASE_URL', 'https://meet.jit.si'),
     ],
 
 ];

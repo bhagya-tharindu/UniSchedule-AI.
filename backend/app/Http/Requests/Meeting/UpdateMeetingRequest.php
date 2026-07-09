@@ -21,6 +21,8 @@ class UpdateMeetingRequest extends FormRequest
             'room_id' => ['nullable', 'exists:rooms,id'],
             'participant_ids' => ['sometimes', 'array'],
             'participant_ids.*' => ['exists:users,id'],
+            'meeting_mode' => ['sometimes', 'in:jitsi,external'],
+            'meeting_url' => ['nullable', 'url', 'max:500'],
             'force' => ['sometimes', 'boolean'],
         ];
     }
