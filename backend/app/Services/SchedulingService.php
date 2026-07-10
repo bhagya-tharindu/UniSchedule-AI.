@@ -14,6 +14,7 @@ class SchedulingService
 {
     public function __construct(
         private readonly ClashDetectionService $clashDetection,
+        private readonly MeetingNotificationService $meetingNotifications,
     ) {}
 
     /**
@@ -65,7 +66,11 @@ class SchedulingService
 
         $meeting->update(['status' => 'cancelled']);
 
-        return $meeting->fresh(['room', 'organizer', 'participants.user']);
+        $meeting = $meeting->fresh(['room', 'organizer', 'participants.user']);
+
+        $this->meetingNotifications->notifyCancelled($meeting);
+
+        return $meeting;
     }
 
     /**
@@ -109,7 +114,16 @@ class SchedulingService
 
         [$meetingMode, $meetingUrl] = $this->resolveMeetingDelivery($data, $existing);
 
-        return DB::transaction(function () use ($data, $organizerId, $participantIds, $start, $end, $roomId, $clashes, $existing, $meetingMode, $meetingUrl) {
+        $snapshot = $existing ? [
+            'title' => $existing->title,
+            'description' => $existing->description,
+            'start_time' => $existing->start_time->copy(),
+            'end_time' => $existing->end_time->copy(),
+            'room_id' => $existing->room_id,
+            'participant_ids' => $existing->participants()->pluck('user_id')->all(),
+        ] : null;
+
+        [$meeting, $changes] = DB::transaction(function () use ($data, $organizerId, $participantIds, $start, $end, $roomId, $clashes, $existing, $meetingMode, $meetingUrl, $snapshot) {
             if ($existing) {
                 $existing->update([
                     'room_id' => $roomId,
@@ -154,8 +168,27 @@ class SchedulingService
                 $this->clashDetection->logClashes($meeting, $clashes);
             }
 
-            return $meeting->fresh(['room', 'organizer', 'participants.user']);
+            $meeting = $meeting->fresh(['room', 'organizer', 'participants.user']);
+
+            $changes = [];
+            if ($existing && $snapshot !== null) {
+                $changes = $this->meetingNotifications->buildChangeSummary(
+                    $snapshot,
+                    $meeting,
+                    $participantIds,
+                );
+            }
+
+            return [$meeting, $changes];
         });
+
+        if ($existing) {
+            $this->meetingNotifications->notifyUpdated($meeting, $changes);
+        } else {
+            $this->meetingNotifications->notifyCreated($meeting);
+        }
+
+        return $meeting;
     }
 
     /**

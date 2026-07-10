@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\ExamPeriodController;
 use App\Http\Controllers\Api\MeetingController;
 use App\Http\Controllers\Api\MyExamsController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\TimetableSlotController;
 use Illuminate\Support\Facades\Route;
 
@@ -31,6 +32,10 @@ Route::prefix('v1')->group(function () {
         Route::get('/meetings/{meeting}', [MeetingController::class, 'show']);
         Route::put('/meetings/{meeting}', [MeetingController::class, 'update']);
         Route::delete('/meetings/{meeting}', [MeetingController::class, 'destroy']);
+
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead']);
+        Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
 
         Route::middleware('role:admin')->prefix('admin')->group(function () {
             Route::get('/users', [AdminUserController::class, 'index']);

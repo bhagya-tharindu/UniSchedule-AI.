@@ -145,6 +145,53 @@ php artisan migrate
 php artisan db:seed
 ```
 
+## 3f. Meeting participant notifications
+
+Participants receive **email + in-app** notifications when a meeting is created, updated, or cancelled.
+
+- In-app: bell icon in the dashboard header (`GET /api/v1/notifications`)
+- Email: Laravel mail driver (default `log` writes to `storage/logs/laravel.log`)
+- Links in emails use `FRONTEND_URL` (default `http://localhost:3000`)
+
+### Mail config (`backend/.env`)
+
+Local dev (no SMTP required):
+
+```
+MAIL_MAILER=log
+MAIL_FROM_ADDRESS=notifications@unischedule.local
+MAIL_FROM_NAME="${APP_NAME}"
+FRONTEND_URL=http://localhost:3000
+```
+
+Optional Mailtrap / SMTP for demo:
+
+```
+MAIL_MAILER=smtp
+MAIL_HOST=sandbox.smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USERNAME=your_username
+MAIL_PASSWORD=your_password
+MAIL_ENCRYPTION=tls
+```
+
+After migration, the `notifications` table stores in-app notification history.
+
+### Background queue (email + in-app)
+
+Meeting notifications implement `ShouldQueue` and use `QUEUE_CONNECTION=database` by default. The API returns immediately; a worker sends mail and writes in-app notifications.
+
+Run **alongside** `php artisan serve` in a second terminal:
+
+```powershell
+cd D:\UniScheduleAI\backend
+php artisan queue:work
+```
+
+Without the worker, jobs pile up in the `jobs` table and emails/bell updates will not appear until you start the worker.
+
+Tests use `QUEUE_CONNECTION=sync` in `phpunit.xml` so notifications still run inline during `php artisan test`.
+
 ## 4. Tests
 
 ```powershell

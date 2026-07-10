@@ -102,6 +102,17 @@ export type CourseDetail = Course & {
   exam_periods: CourseExamPeriod[];
 };
 
+export type AppNotification = {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  meeting_id: number | null;
+  join_url: string | null;
+  read_at: string | null;
+  created_at: string | null;
+};
+
 type ClashError = { type?: string; message?: string };
 
 type ApiError = {
@@ -413,5 +424,24 @@ export const api = {
     return request<{ message: string }>(`/admin/course-exam-periods/${id}`, {
       method: "DELETE",
     });
+  },
+
+  listNotifications() {
+    return request<{ data: AppNotification[]; unread_count: number }>(
+      "/notifications",
+    );
+  },
+
+  markNotificationRead(id: string) {
+    return request<{ data: AppNotification }>(`/notifications/${id}/read`, {
+      method: "PATCH",
+    });
+  },
+
+  markAllNotificationsRead() {
+    return request<{ message: string; unread_count: number }>(
+      "/notifications/read-all",
+      { method: "POST" },
+    );
   },
 };

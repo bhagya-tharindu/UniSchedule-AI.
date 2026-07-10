@@ -19,6 +19,7 @@ import { api, setToken, type User } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ModeToggle } from "@/components/mode-toggle";
+import { NotificationBell } from "@/components/NotificationBell";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -96,6 +97,8 @@ export default function DashboardLayout({
             </Button>
 
             <ModeToggle />
+
+            <NotificationBell />
 
             {user && (
               <DropdownMenu>
