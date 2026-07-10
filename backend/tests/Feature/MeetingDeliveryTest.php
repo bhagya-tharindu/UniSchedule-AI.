@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -10,6 +11,28 @@ use Tests\TestCase;
 class MeetingDeliveryTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_quick_meeting_end_time_is_in_the_future(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $start = now()->utc();
+        $end = $start->copy()->addMinutes(30);
+
+        $response = $this->postJson('/api/v1/meetings', [
+            'title' => 'Quick meeting',
+            'start_time' => $start->toIso8601String(),
+            'end_time' => $end->toIso8601String(),
+            'meeting_mode' => 'jitsi',
+            'force' => true,
+        ]);
+
+        $response->assertCreated();
+
+        $returnedEnd = Carbon::parse($response->json('data.end_time'));
+        $this->assertTrue($returnedEnd->isFuture(), 'Quick meeting end_time should be in the future.');
+    }
 
     public function test_creates_jitsi_meeting_with_auto_url(): void
     {

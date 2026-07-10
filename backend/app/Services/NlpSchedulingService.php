@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Data\ParsedMeetingRequest;
 use App\Models\Room;
 use App\Models\User;
+use App\Support\MeetingTime;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -286,14 +287,14 @@ PROMPT;
         $normalizedEnd = $this->normalizeDateTime($endTime, $tz);
 
         if ($normalizedStart && ! $normalizedEnd) {
-            $normalizedEnd = Carbon::parse($normalizedStart, $tz)
+            $normalizedEnd = MeetingTime::parse($normalizedStart)
                 ->addMinutes(self::DEFAULT_DURATION_MINUTES)
                 ->toIso8601String();
         }
 
         if ($normalizedStart && $normalizedEnd) {
-            $start = Carbon::parse($normalizedStart, $tz);
-            $end = Carbon::parse($normalizedEnd, $tz);
+            $start = MeetingTime::parse($normalizedStart);
+            $end = MeetingTime::parse($normalizedEnd);
             if ($end->lte($start)) {
                 $errors[] = 'End time must be after start time.';
             }
@@ -455,7 +456,7 @@ PROMPT;
         }
 
         try {
-            return Carbon::parse($value, $tz)->toIso8601String();
+            return MeetingTime::parse($value)->toIso8601String();
         } catch (\Throwable) {
             return null;
         }

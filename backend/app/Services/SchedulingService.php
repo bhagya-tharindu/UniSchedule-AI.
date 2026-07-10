@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Meeting;
 use App\Models\MeetingParticipant;
 use App\Models\Room;
+use App\Support\MeetingTime;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -45,8 +46,8 @@ class SchedulingService
         $payload = array_merge([
             'title' => $meeting->title,
             'description' => $meeting->description,
-            'start_time' => $meeting->start_time->toDateTimeString(),
-            'end_time' => $meeting->end_time->toDateTimeString(),
+            'start_time' => $meeting->start_time->toIso8601String(),
+            'end_time' => $meeting->end_time->toIso8601String(),
             'room_id' => $meeting->room_id,
             'participant_ids' => $meeting->participants()->pluck('user_id')->all(),
             'meeting_mode' => $meeting->meeting_mode,
@@ -83,9 +84,8 @@ class SchedulingService
         ?Meeting $existing = null,
     ): Meeting
     {
-        $tz = config('app.timezone');
-        $start = Carbon::parse($data['start_time'], $tz);
-        $end = Carbon::parse($data['end_time'], $tz);
+        $start = MeetingTime::parse($data['start_time']);
+        $end = MeetingTime::parse($data['end_time']);
         $participantIds = collect($data['participant_ids'] ?? [])
             ->push($organizerId)
             ->unique()

@@ -11,7 +11,7 @@ use App\Models\Meeting;
 use App\Services\ClashDetectionService;
 use App\Services\NlpSchedulingService;
 use App\Services\SchedulingService;
-use Carbon\Carbon;
+use App\Support\MeetingTime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -110,9 +110,8 @@ class MeetingController extends Controller
         $payload['suggestions'] = [];
 
         if ($parsed->intent === 'book' && $parsed->startTime && $parsed->endTime) {
-            $tz = config('app.timezone');
-            $start = Carbon::parse($parsed->startTime, $tz);
-            $end = Carbon::parse($parsed->endTime, $tz);
+            $start = MeetingTime::parse($parsed->startTime);
+            $end = MeetingTime::parse($parsed->endTime);
             $participantIds = collect($parsed->participantIds)
                 ->push($request->user()->id)
                 ->unique()
@@ -157,9 +156,8 @@ class MeetingController extends Controller
             'exclude_meeting_id' => ['nullable', 'exists:meetings,id'],
         ]);
 
-        $tz = config('app.timezone');
-        $start = Carbon::parse($validated['start_time'], $tz);
-        $end = Carbon::parse($validated['end_time'], $tz);
+        $start = MeetingTime::parse($validated['start_time']);
+        $end = MeetingTime::parse($validated['end_time']);
         $participantIds = collect($validated['participant_ids'] ?? [])
             ->push($request->user()->id)
             ->unique()
